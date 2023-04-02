@@ -45,19 +45,158 @@ impl Chip8Emulator {
                     0x00EE => {
 
                     },
-                    // 0nnn
+                    // 0NNN
                     _=> {
 
                     }
                 }
             }
+            // 1NNN
+            0x1000 => {
+
+            },
+            // 2NNN
+            0x2000 => {
+
+            },
+            // 3XNN
+            0x3000 => {
+
+            },
+            // 4XNN
+            0x4000 => {
+
+            },
+            // 5XY0
+            0x5000 => {
+
+            },
+            // 6XNN
+            0x6000 => {
+
+            },
+            // 7XNN
+            0x7000 => {
+
+            },
+            0x8000 => {
+                match self.opcode.opcode & 0x000F {
+                    // 0x8XY0
+                    0x0000 => {
+
+                    },
+                    // 0x8XY1
+                    0x0001 => {
+
+                    },
+                    // 0x8XY2
+                    0x0002 => {
+
+                    },
+                    // 0x8XY3
+                    0x0003 => {
+
+                    },
+                    // 0x8XY4
+                    0x0004 => {
+
+                    },
+                    // 0x8XY5
+                    0x0005 => {
+
+                    },
+                    // 0x8XY6
+                    0x0006 => {
+
+                    },
+                    // 0x8XY7
+                    0x0007 => {
+
+                    },
+                    // 0x8XYE
+                    0x000E => {
+
+                    },
+                    _ => println!("Unknown opcode")
+                }
+            },
+            // 0x9XY0
+            0x9000 => {
+
+            },
+            // 0xANNN
             0xA000 => {
                 self.registers.i = self.opcode.opcode & 0x0FFF;
                 self.registers.program_counter += 2;
             },
-            _ => {
+            // 0xBNNN
+            0xB000 => {
+
+            },
+            // 0xCXNN
+            0xC000 => {
+
+            },
+            // 0xDXYN
+            0xD000 => {
+
+            },
+            0xE000 => {
+                match self.opcode.opcode & 0x00FF {
+                    // 0xEX9E
+                    0x009E => {
+
+                    },
+                    // 0xEXA1
+                    0x00A1 => {
+
+                    },
+                    _ => println!("Wrong opcode")
+                }
+            },
+            0xF000 => {
+                match self.opcode.opcode & 0x00FF {
+                    // 0xFX07
+                    0x0007 => {
+
+                    },
+                    // 0xFX0A
+                    0x000A => {
+
+                    },
+                    // 0xFX15
+                    0x0015 => {
+
+                    },
+                    // 0xFX18
+                    0x0018 => {
+
+                    },
+                    // 0xFX1E
+                    0x001E => {
+
+                    },
+                    // 0xFX29
+                    0x0029 => {
+
+                    },
+                    // 0xFX33
+                    0x0033 => {
+
+                    },
+                    // 0xFX55
+                    0x0055 => {
+
+                    },
+                    // 0xFX65
+                    0x0065 => {
+
+                    },
+                    _ => println!("Wrong opcode")
+                }
 
             }
+            _ => println!("Wrong opcode")
         }
     }
 }
