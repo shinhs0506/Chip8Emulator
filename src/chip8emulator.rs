@@ -144,6 +144,7 @@ impl Chip8Emulator {
 
     pub fn emulate_cycle(&mut self) {
         self.opcode.opcode = (self.memory.ram[self.registers.program_counter as usize] as u16) << 8 | self.memory.ram[self.registers.program_counter as usize + 1] as u16; 
+        println!("{}", self.opcode.opcode);
 
         match self.opcode.opcode & 0xF000 {
             0x0000 => {
@@ -178,7 +179,7 @@ impl Chip8Emulator {
             // 3XNN
             0x3000 => {
                 let val = self.opcode.opcode & 0x00FF;
-                let gp_register_index = self.opcode.opcode & 0x0300;
+                let gp_register_index = (self.opcode.opcode & 0x0300) >> 8;
                 if self.registers.gp_registers[gp_register_index as usize] as u16 == val {
                     self.registers.program_counter += 4;
                 }
@@ -186,15 +187,15 @@ impl Chip8Emulator {
             // 4XNN
             0x4000 => {
                 let val = self.opcode.opcode & 0x00FF;
-                let gp_register_index = self.opcode.opcode & 0x0300;
+                let gp_register_index = (self.opcode.opcode & 0x0300) >> 8;
                 if self.registers.gp_registers[gp_register_index as usize] as u16 != val {
                     self.registers.program_counter += 4;
                 }
             },
             // 5XY0
             0x5000 => {
-                let gp_register_index_x = self.opcode.opcode & 0x0300;
-                let gp_register_index_y = self.opcode.opcode & 0x0C00;
+                let gp_register_index_x = (self.opcode.opcode & 0x0300) >> 8;
+                let gp_register_index_y = (self.opcode.opcode & 0x00C0) >> 4;
                 if self.registers.gp_registers[gp_register_index_x as usize] == self.registers.gp_registers[gp_register_index_y as usize] {
                     self.registers.program_counter += 4;
                 }
@@ -202,20 +203,20 @@ impl Chip8Emulator {
             // 6XNN
             0x6000 => {
                 let val = self.opcode.opcode & 0x00FF;
-                let gp_register_index = self.opcode.opcode & 0x0300;
+                let gp_register_index = (self.opcode.opcode & 0x0300) >> 8;
                 self.registers.gp_registers[gp_register_index as usize] = val as u8;
                 self.registers.program_counter += 2;
             },
             // 7XNN
             0x7000 => {
                 let val = self.opcode.opcode & 0x00FF;
-                let gp_register_index = self.opcode.opcode & 0x0300;
+                let gp_register_index = (self.opcode.opcode & 0x0300) >> 8;
                 self.registers.gp_registers[gp_register_index as usize] += val as u8;
                 self.registers.program_counter += 2;
             },
             0x8000 => {
-                let gp_register_index_x = self.opcode.opcode & 0x0300;
-                let gp_register_index_y = self.opcode.opcode & 0x00C0;
+                let gp_register_index_x = (self.opcode.opcode & 0x0300) >> 8;
+                let gp_register_index_y = (self.opcode.opcode & 0x00C0) >> 4;
                 match self.opcode.opcode & 0x000F {
                     // 0x8XY0
                     0x0000 => {
@@ -283,8 +284,8 @@ impl Chip8Emulator {
             },
             // 0x9XY0
             0x9000 => {
-                let gp_register_index_x = self.opcode.opcode & 0x0300;
-                let gp_register_index_y = self.opcode.opcode & 0x00C0;
+                let gp_register_index_x = (self.opcode.opcode & 0x0300) >> 8;
+                let gp_register_index_y = (self.opcode.opcode & 0x00C0) >> 4;
                 if self.registers.gp_registers[gp_register_index_x as usize] != self.registers.gp_registers[gp_register_index_y as usize] {
                     self.registers.program_counter += 4;
                 }
@@ -301,13 +302,17 @@ impl Chip8Emulator {
             },
             // 0xCXNN
             0xC000 => {
-                self.registers.gp_registers[(self.opcode.opcode & 0x0C00) as usize] = rand::thread_rng().gen_range(0..255) & (self.opcode.opcode & 0x00FF) as u8;
+                let gp_register_index_x = (self.opcode.opcode & 0x0300) >> 8;
+                let val = self.opcode.opcode & 0x00FF;
+                self.registers.gp_registers[gp_register_index_x as usize] = rand::thread_rng().gen_range(0..255) & val as u8;
                 self.registers.program_counter += 2;
             },
             // 0xDXYN
             0xD000 => {
-                let x_val = self.registers.gp_registers[(self.opcode.opcode & 0x0300) as usize];
-                let y_val = self.registers.gp_registers[(self.opcode.opcode & 0x00C0) as usize];
+                let gp_register_index_x = (self.opcode.opcode & 0x0300) >> 8;
+                let gp_register_index_y = (self.opcode.opcode & 0x00C0) >> 4;
+                let x_val = self.registers.gp_registers[gp_register_index_x as usize];
+                let y_val = self.registers.gp_registers[gp_register_index_y as usize];
                 let n = self.opcode.opcode & 0x000F;
                 self.registers.gp_registers[15] = 0;
 
@@ -315,10 +320,10 @@ impl Chip8Emulator {
                     let pixel = self.memory.ram[self.registers.i as usize];
                     for row in 0..8 {
                         if pixel & (0x80 >> row) != 0 {
-                            if self.graphic.color_array[(x_val + row + ((y_val + col as u8) * 64)) as usize] == 1 {
+                            if self.graphic.color_array[(x_val as usize + row as usize + ((y_val as usize + col as usize) * 64)) as usize] == 1 {
                                 self.registers.gp_registers[15] = 1;
                             }
-                            self.graphic.color_array[(x_val + row + ((y_val + col as u8) * 64)) as usize] ^= 1; 
+                            self.graphic.color_array[(x_val as usize + row as usize + ((y_val as usize + col as usize) * 64)) as usize] ^= 1; 
                         }
                     }
                 } 
@@ -330,14 +335,16 @@ impl Chip8Emulator {
                 match self.opcode.opcode & 0x00FF {
                     // 0xEX9E
                     0x009E => {
-                        let x_val = self.registers.gp_registers[(self.opcode.opcode & 0x0300) as usize];
+                        let gp_register_index_x = (self.opcode.opcode & 0x0300) >> 8;
+                        let x_val = self.registers.gp_registers[gp_register_index_x as usize];
                         if self.input.pressed[*self.input.val_to_idx.get(&x_val).unwrap()] {
                             self.registers.program_counter += 4;
                         }
                     },
                     // 0xEXA1
                     0x00A1 => {
-                        let x_val = self.registers.gp_registers[(self.opcode.opcode & 0x0300) as usize];
+                        let gp_register_index_x = (self.opcode.opcode & 0x0300) >> 8;
+                        let x_val = self.registers.gp_registers[gp_register_index_x as usize];
                         if !self.input.pressed[*self.input.val_to_idx.get(&x_val).unwrap()] {
                             self.registers.program_counter += 4;
                         }
@@ -347,11 +354,11 @@ impl Chip8Emulator {
                 }
             },
             0xF000 => {
-                let gp_register_index = self.opcode.opcode & 0x0300;
+                let gp_register_index_x = (self.opcode.opcode & 0x0300) >> 8;
                 match self.opcode.opcode & 0x00FF {
                     // 0xFX07
                     0x0007 => {
-                        self.registers.gp_registers[gp_register_index as usize] = self.registers.delay_timer;
+                        self.registers.gp_registers[gp_register_index_x as usize] = self.registers.delay_timer;
                         self.registers.program_counter += 2;
                     },
                     // 0xFX0A
@@ -360,28 +367,28 @@ impl Chip8Emulator {
                     },
                     // 0xFX15
                     0x0015 => {
-                        self.registers.delay_timer = self.registers.gp_registers[gp_register_index as usize];
+                        self.registers.delay_timer = self.registers.gp_registers[gp_register_index_x as usize];
                         self.registers.program_counter += 2;
                     },
                     // 0xFX18
                     0x0018 => {
-                        self.registers.sound_timer = self.registers.gp_registers[gp_register_index as usize];
+                        self.registers.sound_timer = self.registers.gp_registers[gp_register_index_x as usize];
                         self.registers.program_counter += 2;
                     },
                     // 0xFX1E
                     0x001E => {
-                        self.registers.i += self.registers.gp_registers[gp_register_index as usize] as u16;
+                        self.registers.i += self.registers.gp_registers[gp_register_index_x as usize] as u16;
                         self.registers.program_counter += 2;
                     },
                     // 0xFX29
                     0x0029 => {
-                        let x_val = self.registers.gp_registers[(self.opcode.opcode & 0x0F00) as usize];
+                        let x_val = self.registers.gp_registers[gp_register_index_x as usize];
                         self.registers.i = self.memory.ram[(x_val * 5) as usize] as u16;
                         self.registers.program_counter += 2;
                     },
                     // 0xFX33
                     0x0033 => {
-                        let mut val = self.opcode.opcode & 0x0F00;
+                        let mut val = (self.opcode.opcode & 0x0300) >> 8;
                         let one_digit = val % 10;
                         self.memory.ram[(self.registers.i + 2) as usize] = one_digit as u8;
                         val /= 10; 
@@ -390,6 +397,7 @@ impl Chip8Emulator {
                         val /= 10; 
                         let hundred_digit = val % 10;
                         self.memory.ram[(self.registers.i + 2) as usize] = hundred_digit as u8;
+                        self.registers.program_counter += 2;
                     },
                     // 0xFX55
                     0x0055 => {

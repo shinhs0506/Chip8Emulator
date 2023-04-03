@@ -4,7 +4,7 @@ use sdl2;
 use sdl2::pixels::Color;
 use sdl2::event::Event;
 use sdl2::keyboard::Scancode;
-use sdl2::rect::Rect;
+use sdl2::rect::{Rect, Point};
 
 use std::fs;
 
@@ -150,7 +150,7 @@ fn main () {
             chip8_emulator.emulate_cycle();
         }
 
-        // draw
+        draw
         canvas.clear();
         for (idx, val) in chip8_emulator.get_color_array().into_iter().enumerate() {
             if val == 0x01 {
@@ -160,8 +160,9 @@ fn main () {
             }
             let row: i32 = idx as i32 / 64;
             let col: i32 = idx as i32 % 64;
-            let width: u32 = 5;
-            canvas.fill_rect(Rect::new(row, col, width, width)).unwrap();
+            let _width: u32 = 5;
+            canvas.draw_point(Point::new(row, col)).unwrap();
+            // canvas.fill_rect(Rect::new(row, col, width, width)).unwrap();
             canvas.present();
         }
     }
