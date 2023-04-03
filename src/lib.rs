@@ -14,12 +14,14 @@ struct Chip8Emulator {
 }
 
 struct Memory {
-    ram: [u8; 4096],
+    ram: Vec<u8>,
+    size: usize,
     program_start_address: u16,
 }
 
 struct Registers {
-    gp_registers: [u8; 16],
+    gp_registers: Vec<u8>,
+    num_gp_registers: usize,
     i: u16,
     program_counter: u16,
     delay_timer: u8,
@@ -27,12 +29,14 @@ struct Registers {
 }
 
 struct Stack {
-    stack: [u16; 16],
+    stack: Vec<u16>,
+    size: usize,
     stack_pointer: u8,
 }
 
 struct Graphic {
-    color_array: [u8; 64 * 32],
+    color_array: Vec<u8>,
+    size: usize,
 }
 
 struct OpCode {
@@ -40,15 +44,104 @@ struct OpCode {
 }
 
 struct FontSet {
-    font_set: [u8; 5 * 16],
+    font_set: Vec<u8>,
+    size: usize
 }
 
 struct Input {
-    pressed: [bool; 16],
+    pressed: Vec<bool>,
+    num_keys: usize,
     val_to_idx: HashMap<u8, usize>
 }
 
 impl Chip8Emulator {
+    pub fn new() -> Self {
+        let mut chip8_emulator = Chip8Emulator {
+            memory: Memory {
+                size: 4096,
+                ram: [0; 4096].to_vec(),
+                program_start_address: 0x200,
+            },
+            registers: Registers {
+                gp_registers: [0; 16].to_vec(),
+                num_gp_registers: 16,
+                i: 0,
+                program_counter: 0x200,
+                delay_timer: 0,
+                sound_timer: 0,
+            },
+            stack: Stack {
+                stack: [0; 16].to_vec(),
+                size: 16,
+                stack_pointer: 0,
+            },
+            graphic: Graphic {
+                color_array: [0; 64 * 32].to_vec(),
+                size: 64 * 32,
+            },
+            opcode: OpCode {
+                opcode: 0,
+            },
+            font_set: FontSet {
+                font_set: [
+                    0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
+                    0x20, 0x60, 0x20, 0x20, 0x70, // 1
+                    0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
+                    0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
+                    0x90, 0x90, 0xF0, 0x10, 0x10, // 4
+                    0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
+                    0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
+                    0xF0, 0x10, 0x20, 0x40, 0x40, // 7
+                    0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
+                    0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
+                    0xF0, 0x90, 0xF0, 0x90, 0x90, // A
+                    0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
+                    0xF0, 0x80, 0x80, 0x80, 0xF0, // C
+                    0xE0, 0x90, 0x90, 0x90, 0xE0, // D
+                    0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
+                    0xF0, 0x80, 0xF0, 0x80, 0x80  // F
+                ].to_vec(),
+                size: 5 * 16
+            },
+            draw_flag: false,
+            input: Input {
+                pressed: [false; 16].to_vec(),
+                num_keys: 16,
+                val_to_idx: HashMap::from([
+                                          (0x31, 0),
+                                          (0x32, 0),
+                                          (0x33, 0),
+                                          (0x34, 0),
+                                          (0x71, 0),
+                                          (0x77, 0),
+                                          (0x65, 0),
+                                          (0x72, 0),
+                                          (0x61, 0),
+                                          (0x73, 0),
+                                          (0x64, 0),
+                                          (0x66, 0),
+                                          (0x7a, 0),
+                                          (0x78, 0),
+                                          (0x63, 0),
+                                          (0x76, 0),])
+            },
+            is_waiting_for_key: false,
+        };
+        chip8_emulator
+    }
+
+    pub fn init(self) {
+        // load fontset
+        for (i, val) in self.font_set.font_set.iter().enumerate() {
+            self.memory.ram[i] = *val;
+        }
+
+        // laod program into memory
+        for (i, val) in self.buffer.iter().enumerate() {
+            self.memory.ram[(self.memory.program_start_address + i as u16) as usize] = *val;
+        }
+    }
+
     pub fn emulate_cycle(&mut self) {
         self.opcode.opcode = (self.memory.ram[self.registers.program_counter as usize] as u16) << 8 | self.memory.ram[self.registers.program_counter as usize + 1] as u16; 
 
@@ -72,7 +165,7 @@ impl Chip8Emulator {
                     }
                 }
             }
-            // 1NNN
+            // 1NNet
             0x1000 => {
                 self.registers.program_counter = self.opcode.opcode & 0x0FFF;
             },
@@ -300,8 +393,8 @@ impl Chip8Emulator {
                     },
                     // 0xFX55
                     0x0055 => {
-                        for (i, x) in self.registers.gp_registers.into_iter().enumerate() {
-                            self.memory.ram[(self.registers.i + i as u16) as usize] = x;
+                        for (i, x) in self.registers.gp_registers.iter().enumerate() {
+                            self.memory.ram[(self.registers.i + i as u16) as usize] = *x;
                         }
                         self.registers.program_counter += 2;
                     },
@@ -339,89 +432,3 @@ impl Chip8Emulator {
         // TODO: get key and set status, also unset is_waiting_for_key
     }
 }
-
-pub fn run(buffer: &[u8]) {
-    let mut chip8_emulator = Chip8Emulator {
-        memory: Memory {
-            ram: [0; 4096],
-            program_start_address: 0x200,
-        },
-        registers: Registers {
-            gp_registers: [0; 16],
-            i: 0,
-            program_counter: 0x200,
-            delay_timer: 0,
-            sound_timer: 0,
-        },
-        stack: Stack {
-            stack: [0; 16],
-            stack_pointer: 0,
-        },
-        graphic: Graphic {
-            color_array: [0; 64 * 32],
-        },
-        opcode: OpCode {
-            opcode: 0,
-        },
-        font_set: FontSet {
-            font_set: [
-                0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
-                0x20, 0x60, 0x20, 0x20, 0x70, // 1
-                0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
-                0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
-                0x90, 0x90, 0xF0, 0x10, 0x10, // 4
-                0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
-                0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
-                0xF0, 0x10, 0x20, 0x40, 0x40, // 7
-                0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
-                0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
-                0xF0, 0x90, 0xF0, 0x90, 0x90, // A
-                0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
-                0xF0, 0x80, 0x80, 0x80, 0xF0, // C
-                0xE0, 0x90, 0x90, 0x90, 0xE0, // D
-                0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
-                0xF0, 0x80, 0xF0, 0x80, 0x80  // F
-            ],
-        },
-        draw_flag: false,
-        input: Input {
-            pressed: [false; 16],
-            val_to_idx: HashMap::from([
-                                      (0x31, 0),
-                                      (0x32, 0),
-                                      (0x33, 0),
-                                      (0x34, 0),
-                                      (0x71, 0),
-                                      (0x77, 0),
-                                      (0x65, 0),
-                                      (0x72, 0),
-                                      (0x61, 0),
-                                      (0x73, 0),
-                                      (0x64, 0),
-                                      (0x66, 0),
-                                      (0x7a, 0),
-                                      (0x78, 0),
-                                      (0x63, 0),
-                                      (0x76, 0),])
-        },
-        is_waiting_for_key: false,
-    };
-
-    // load fontset
-    for (i, val) in chip8_emulator.font_set.font_set.into_iter().enumerate() {
-        chip8_emulator.memory.ram[i] = val;
-    }
-
-    // laod program into memory
-    for (i, val) in buffer.into_iter().enumerate() {
-        chip8_emulator.memory.ram[(chip8_emulator.memory.program_start_address + i as u16) as usize] = *val;
-    }
-
-    chip8_emulator.emulate_cycle();
-
-    if chip8_emulator.draw_flag {
-        chip8_emulator.draw();
-    }
-
-    chip8_emulator.set_key();
-} 
