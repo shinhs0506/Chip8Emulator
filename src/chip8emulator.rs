@@ -1,7 +1,7 @@
 use rand::Rng;
 use std::collections::HashMap;
 
-struct Chip8Emulator {
+pub struct Chip8Emulator {
     memory: Memory,
     registers: Registers,
     stack: Stack,
@@ -56,7 +56,7 @@ struct Input {
 
 impl Chip8Emulator {
     pub fn new() -> Self {
-        let mut chip8_emulator = Chip8Emulator {
+        let chip8_emulator = Chip8Emulator {
             memory: Memory {
                 size: 4096,
                 ram: [0; 4096].to_vec(),
@@ -108,36 +108,36 @@ impl Chip8Emulator {
                 pressed: [false; 16].to_vec(),
                 num_keys: 16,
                 val_to_idx: HashMap::from([
-                                          (0x31, 0),
-                                          (0x32, 0),
-                                          (0x33, 0),
-                                          (0x34, 0),
-                                          (0x71, 0),
-                                          (0x77, 0),
-                                          (0x65, 0),
-                                          (0x72, 0),
-                                          (0x61, 0),
-                                          (0x73, 0),
-                                          (0x64, 0),
-                                          (0x66, 0),
-                                          (0x7a, 0),
-                                          (0x78, 0),
-                                          (0x63, 0),
-                                          (0x76, 0),])
+                                          (0x01, 0),
+                                          (0x02, 1),
+                                          (0x03, 2),
+                                          (0x0C, 3),
+                                          (0x04, 4),
+                                          (0x05, 5),
+                                          (0x06, 6),
+                                          (0x0D, 7),
+                                          (0x07, 8),
+                                          (0x08, 9),
+                                          (0x09, 10),
+                                          (0x0E, 11),
+                                          (0x0A, 12),
+                                          (0x00, 13),
+                                          (0x0B, 14),
+                                          (0x0F, 15),])
             },
             is_waiting_for_key: false,
         };
         chip8_emulator
     }
 
-    pub fn init(self) {
+    pub fn init(&mut self, buffer: Vec<u8>) {
         // load fontset
         for (i, val) in self.font_set.font_set.iter().enumerate() {
             self.memory.ram[i] = *val;
         }
 
         // laod program into memory
-        for (i, val) in self.buffer.iter().enumerate() {
+        for (i, val) in buffer.iter().enumerate() {
             self.memory.ram[(self.memory.program_start_address + i as u16) as usize] = *val;
         }
     }
@@ -178,7 +178,7 @@ impl Chip8Emulator {
             // 3XNN
             0x3000 => {
                 let val = self.opcode.opcode & 0x00FF;
-                let gp_register_index = self.opcode.opcode & 0x0F00;
+                let gp_register_index = self.opcode.opcode & 0x0300;
                 if self.registers.gp_registers[gp_register_index as usize] as u16 == val {
                     self.registers.program_counter += 4;
                 }
@@ -186,15 +186,15 @@ impl Chip8Emulator {
             // 4XNN
             0x4000 => {
                 let val = self.opcode.opcode & 0x00FF;
-                let gp_register_index = self.opcode.opcode & 0x0F00;
+                let gp_register_index = self.opcode.opcode & 0x0300;
                 if self.registers.gp_registers[gp_register_index as usize] as u16 != val {
                     self.registers.program_counter += 4;
                 }
             },
             // 5XY0
             0x5000 => {
-                let gp_register_index_x = self.opcode.opcode & 0x0F00;
-                let gp_register_index_y = self.opcode.opcode & 0x00F0;
+                let gp_register_index_x = self.opcode.opcode & 0x0300;
+                let gp_register_index_y = self.opcode.opcode & 0x0C00;
                 if self.registers.gp_registers[gp_register_index_x as usize] == self.registers.gp_registers[gp_register_index_y as usize] {
                     self.registers.program_counter += 4;
                 }
@@ -202,20 +202,20 @@ impl Chip8Emulator {
             // 6XNN
             0x6000 => {
                 let val = self.opcode.opcode & 0x00FF;
-                let gp_register_index = self.opcode.opcode & 0x0F00;
+                let gp_register_index = self.opcode.opcode & 0x0300;
                 self.registers.gp_registers[gp_register_index as usize] = val as u8;
                 self.registers.program_counter += 2;
             },
             // 7XNN
             0x7000 => {
                 let val = self.opcode.opcode & 0x00FF;
-                let gp_register_index = self.opcode.opcode & 0x0F00;
+                let gp_register_index = self.opcode.opcode & 0x0300;
                 self.registers.gp_registers[gp_register_index as usize] += val as u8;
                 self.registers.program_counter += 2;
             },
             0x8000 => {
-                let gp_register_index_x = self.opcode.opcode & 0x0F00;
-                let gp_register_index_y = self.opcode.opcode & 0x00F0;
+                let gp_register_index_x = self.opcode.opcode & 0x0300;
+                let gp_register_index_y = self.opcode.opcode & 0x00C0;
                 match self.opcode.opcode & 0x000F {
                     // 0x8XY0
                     0x0000 => {
@@ -283,8 +283,8 @@ impl Chip8Emulator {
             },
             // 0x9XY0
             0x9000 => {
-                let gp_register_index_x = self.opcode.opcode & 0x0F00;
-                let gp_register_index_y = self.opcode.opcode & 0x00F0;
+                let gp_register_index_x = self.opcode.opcode & 0x0300;
+                let gp_register_index_y = self.opcode.opcode & 0x00C0;
                 if self.registers.gp_registers[gp_register_index_x as usize] != self.registers.gp_registers[gp_register_index_y as usize] {
                     self.registers.program_counter += 4;
                 }
@@ -301,13 +301,13 @@ impl Chip8Emulator {
             },
             // 0xCXNN
             0xC000 => {
-                self.registers.gp_registers[(self.opcode.opcode & 0x0F00) as usize] = rand::thread_rng().gen_range(0..255) & (self.opcode.opcode & 0x00FF) as u8;
+                self.registers.gp_registers[(self.opcode.opcode & 0x0C00) as usize] = rand::thread_rng().gen_range(0..255) & (self.opcode.opcode & 0x00FF) as u8;
                 self.registers.program_counter += 2;
             },
             // 0xDXYN
             0xD000 => {
-                let x_val = self.registers.gp_registers[(self.opcode.opcode & 0x0F00) as usize];
-                let y_val = self.registers.gp_registers[(self.opcode.opcode & 0x00F0) as usize];
+                let x_val = self.registers.gp_registers[(self.opcode.opcode & 0x0300) as usize];
+                let y_val = self.registers.gp_registers[(self.opcode.opcode & 0x00C0) as usize];
                 let n = self.opcode.opcode & 0x000F;
                 self.registers.gp_registers[15] = 0;
 
@@ -330,14 +330,14 @@ impl Chip8Emulator {
                 match self.opcode.opcode & 0x00FF {
                     // 0xEX9E
                     0x009E => {
-                        let x_val = self.registers.gp_registers[(self.opcode.opcode & 0x0F00) as usize];
+                        let x_val = self.registers.gp_registers[(self.opcode.opcode & 0x0300) as usize];
                         if self.input.pressed[*self.input.val_to_idx.get(&x_val).unwrap()] {
                             self.registers.program_counter += 4;
                         }
                     },
                     // 0xEXA1
                     0x00A1 => {
-                        let x_val = self.registers.gp_registers[(self.opcode.opcode & 0x0F00) as usize];
+                        let x_val = self.registers.gp_registers[(self.opcode.opcode & 0x0300) as usize];
                         if !self.input.pressed[*self.input.val_to_idx.get(&x_val).unwrap()] {
                             self.registers.program_counter += 4;
                         }
@@ -347,7 +347,7 @@ impl Chip8Emulator {
                 }
             },
             0xF000 => {
-                let gp_register_index = self.opcode.opcode & 0x0F00;
+                let gp_register_index = self.opcode.opcode & 0x0300;
                 match self.opcode.opcode & 0x00FF {
                     // 0xFX07
                     0x0007 => {
@@ -424,11 +424,23 @@ impl Chip8Emulator {
         }
     }
 
-    pub fn draw(&self) {
-        // TODO: WebGL
+    pub fn set_key(&mut self, index: usize, pressed: bool) {
+        self.input.pressed[index] = pressed;
     }
 
-    pub fn set_key(&mut self) {
-        // TODO: get key and set status, also unset is_waiting_for_key
+    pub fn get_wait_flag(&self) -> bool {
+        self.is_waiting_for_key
+    }
+
+    pub fn set_wait_flag(&mut self, flag: bool) {
+        self.is_waiting_for_key = flag;
+    }
+
+    pub fn resume_cycle(&mut self) {
+        self.registers.program_counter += 2;
+    }
+
+    pub fn get_color_array(&self) -> Vec<u8> {
+        self.graphic.color_array.clone()
     }
 }
