@@ -44,9 +44,7 @@
 
             let file_input = document.getElementById("fileinput");
             file_input.addEventListener("change", function(evt) {
-                while (animation_frame != 0) {
-                    ctx.fillStyle = "black";
-                    ctx.fillRect(0, 0, WIDTH * CELL_SIZE, HEIGHT * CELL_SIZE);
+                if (animation_frame != 0) {
                     window.cancelAnimationFrame(animation_frame);
                 }
 
@@ -58,6 +56,8 @@
 
                 let fr = new FileReader()
                 fr.onload = function(e) {
+                    ctx.fillStyle = "black";
+                    ctx.fillRect(0, 0, WIDTH * CELL_SIZE, HEIGHT * CELL_SIZE);
                     const  buffer = new Uint8Array(fr.result);
                     chip8_emulator_wasm.reset();
                     chip8_emulator_wasm.init(buffer);
