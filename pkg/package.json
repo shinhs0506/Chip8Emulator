@@ -1,0 +1,14 @@
+{
+  "name": "chip8emu",
+  "version": "0.1.0",
+  "files": [
+    "chip8emu_bg.wasm",
+    "chip8emu.js",
+    "chip8emu.d.ts"
+  ],
+  "module": "chip8emu.js",
+  "types": "chip8emu.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
