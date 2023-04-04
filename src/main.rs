@@ -6,22 +6,47 @@ use sdl2::event::Event;
 use sdl2::keyboard::Scancode;
 use sdl2::rect::Rect;
 
+use std::ffi::OsStr;
 use std::fs;
+use std::env;
+use std::path::Path;
 
 use chip8emulator::Chip8Emulator;
 
+const CELL_SIZE:u32 = 18;
+const HEIGHT: u32 = 32;
+const WIDTH: u32 = 64;
+
 fn main () {
+    let args: Vec<_> = env::args().collect();
+    if args.len() != 2 {
+        println!("Run: cargo run /path/to/.ch/file");
+        return;
+    }
+    match Path::new(&args[1]).extension().and_then(OsStr::to_str) {
+        Some(ext) => {
+            if ext != "ch8" {
+                println!("Provide a .ch file");
+                return;
+            }
+        },
+        _ => {
+            println!("Could not parse file");
+            return;
+        }
+    }
+
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
 
-    let window = video_subsystem.window("Chip-8 Emulator", 1200, 900).position_centered().build().unwrap();
+    let window = video_subsystem.window("Chip-8 Emulator", WIDTH * CELL_SIZE, HEIGHT * CELL_SIZE).position_centered().build().unwrap();
 
     let mut canvas = window.into_canvas().build().unwrap();
     canvas.set_draw_color(Color::WHITE);
     canvas.clear();
     canvas.present();
 
-    let buffer = fs::read("./game.ch8").unwrap();
+    let buffer = fs::read(&args[1]).unwrap();
     let mut chip8_emulator = Chip8Emulator::new();
     chip8_emulator.init(&buffer);
 
@@ -30,113 +55,15 @@ fn main () {
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit { .. } => break 'main_loop,
-                Event::KeyDown { timestamp: _, window_id: _, keycode: _, scancode, keymod: _, repeat: _ } => {
-                    match scancode {
-                        Some(Scancode::Num1) => {
-                            chip8_emulator.set_key(0, true)
-                        },
-                        Some(Scancode::Num2) => {
-                            chip8_emulator.set_key(1, true)
-                        },
-                        Some(Scancode::Num3) => {
-                            chip8_emulator.set_key(2, true)
-                        },
-                        Some(Scancode::Num4) => {
-                            chip8_emulator.set_key(3, true)
-                        },
-                        Some(Scancode::Q) => {
-                            println!("Q Q Q");
-                            chip8_emulator.set_key(4, true)
-                        },
-                        Some(Scancode::W) => {
-                            chip8_emulator.set_key(5, true)
-                        },
-                        Some(Scancode::E) => {
-                            chip8_emulator.set_key(6, true)
-                        },
-                        Some(Scancode::R) => {
-                            chip8_emulator.set_key(7, true)
-                        },
-                        Some(Scancode::A) => {
-                            chip8_emulator.set_key(8, true)
-                        },
-                        Some(Scancode::S) => {
-                            chip8_emulator.set_key(9, true)
-                        },
-                        Some(Scancode::D) => {
-                            chip8_emulator.set_key(10, true)
-                        },
-                        Some(Scancode::F) => {
-                            chip8_emulator.set_key(11, true)
-                        },
-                        Some(Scancode::Z) => {
-                            chip8_emulator.set_key(12, true)
-                        },
-                        Some(Scancode::X) => {
-                            chip8_emulator.set_key(13, true)
-                        },
-                        Some(Scancode::C) => {
-                            chip8_emulator.set_key(14, true)
-                        },
-                        Some(Scancode::V) => {
-                            chip8_emulator.set_key(15, true)
-                        },
-                        _ => (),
+                Event::KeyDown { scancode: Some(scancode), .. } => {
+                    if let Some(idx) = scancode2idx(scancode) {
+                        chip8_emulator.set_key(idx, true)
                     }
                 }
-                Event::KeyUp { timestamp: _, window_id: _, keycode: _, scancode, keymod: _, repeat: _ } => {
-                    match scancode {
-                        Some(Scancode::Num1) => {
-                            chip8_emulator.set_key(0, false)
-                        },
-                        Some(Scancode::Num2) => {
-                            chip8_emulator.set_key(1, false)
-                        },
-                        Some(Scancode::Num3) => {
-                            chip8_emulator.set_key(2, false)
-                        },
-                        Some(Scancode::Num4) => {
-                            chip8_emulator.set_key(3, false)
-                        },
-                        Some(Scancode::Q) => {
-                            chip8_emulator.set_key(4, false)
-                        },
-                        Some(Scancode::W) => {
-                            chip8_emulator.set_key(5, false)
-                        },
-                        Some(Scancode::E) => {
-                            chip8_emulator.set_key(6, false)
-                        },
-                        Some(Scancode::R) => {
-                            chip8_emulator.set_key(7, false)
-                        },
-                        Some(Scancode::A) => {
-                            chip8_emulator.set_key(8, false)
-                        },
-                        Some(Scancode::S) => {
-                            chip8_emulator.set_key(9, false)
-                        },
-                        Some(Scancode::D) => {
-                            chip8_emulator.set_key(10, false)
-                        },
-                        Some(Scancode::F) => {
-                            chip8_emulator.set_key(11, false)
-                        },
-                        Some(Scancode::Z) => {
-                            chip8_emulator.set_key(12, false)
-                        },
-                        Some(Scancode::X) => {
-                            chip8_emulator.set_key(13, false)
-                        },
-                        Some(Scancode::C) => {
-                            chip8_emulator.set_key(14, false)
-                        },
-                        Some(Scancode::V) => {
-                            chip8_emulator.set_key(15, false)
-                        },
-                        _ => (),
+                Event::KeyUp { scancode: Some(scancode), .. } => {
+                    if let Some(idx) = scancode2idx(scancode) {
+                        chip8_emulator.set_key(idx, false)
                     }
-
                 }
                 _ => (),
             }
@@ -152,12 +79,32 @@ fn main () {
             } else {
                 canvas.set_draw_color(Color::BLACK);
             }
-            let width: u32 = 15;
-            // canvas.draw_point(Point::new(row_idx as i32, col_idx as i32)).unwrap();
-            let ul_y = (idx / 64) as u32;
             let ul_x = (idx % 64) as u32;
-            canvas.fill_rect(Rect::new((ul_x * width) as i32, (ul_y * width) as i32, width, width)).unwrap();
+            let ul_y = (idx / 64) as u32;
+            canvas.fill_rect(Rect::new((ul_x * CELL_SIZE) as i32, (ul_y * CELL_SIZE) as i32, CELL_SIZE, CELL_SIZE)).unwrap();
         }
         canvas.present();
+    }
+}
+
+fn scancode2idx(code: Scancode) -> Option<usize> {
+    match code {
+        Scancode::Num1 => Some(0x1),
+        Scancode::Num2 => Some(0x2),
+        Scancode::Num3 => Some(0x3),
+        Scancode::Num4 => Some(0xC),
+        Scancode::Q => Some(0x4),
+        Scancode::W => Some(0x5),
+        Scancode::E => Some(0x6),
+        Scancode::R => Some(0xD),
+        Scancode::A => Some(0x7),
+        Scancode::S => Some(0x8),
+        Scancode::D => Some(0x9),
+        Scancode::F => Some(0xE),
+        Scancode::Z => Some(0xA),
+        Scancode::X => Some(0x0),
+        Scancode::C => Some(0xB),
+        Scancode::V => Some(0xF),
+        _ => None,
     }
 }
