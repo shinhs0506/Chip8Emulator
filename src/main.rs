@@ -31,10 +31,6 @@ fn main () {
             match event {
                 Event::Quit { .. } => break 'main_loop,
                 Event::KeyDown { timestamp: _, window_id: _, keycode: _, scancode, keymod: _, repeat: _ } => {
-                    if chip8_emulator.get_wait_flag() {
-                        chip8_emulator.set_wait_flag(false);
-                        chip8_emulator.resume_cycle();
-                    }
                     match scancode {
                         Some(Scancode::Num1) => {
                             chip8_emulator.set_key(0, true)
@@ -146,9 +142,7 @@ fn main () {
             }
         }
         
-        if !chip8_emulator.get_wait_flag() {
-            chip8_emulator.emulate_cycle();
-        }
+        chip8_emulator.emulate_cycle();
 
         canvas.clear();
         for (idx, val) in chip8_emulator.get_color_array().into_iter().enumerate() {

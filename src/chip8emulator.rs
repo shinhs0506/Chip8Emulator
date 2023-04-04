@@ -10,7 +10,6 @@ pub struct Chip8Emulator {
     font_set: FontSet,
     draw_flag: bool,
     input: Input,
-    is_waiting_for_key: bool,
 }
 
 struct Memory {
@@ -125,7 +124,6 @@ impl Chip8Emulator {
                                           (0x0B, 14),
                                           (0x0F, 15),])
             },
-            is_waiting_for_key: false,
         };
         chip8_emulator
     }
@@ -217,7 +215,7 @@ impl Chip8Emulator {
             0x7000 => {
                 let val = self.opcode.opcode & 0x00FF;
                 let gp_register_index = (self.opcode.opcode & 0x0F00) >> 8;
-                let (res, _overflow) = self.registers.gp_registers[gp_register_index as usize].overflowing_add(val as u8);
+                let res = self.registers.gp_registers[gp_register_index as usize].wrapping_add(val as u8);
                 self.registers.gp_registers[gp_register_index as usize] = res;
                 self.registers.program_counter += 2;
             },
@@ -306,13 +304,14 @@ impl Chip8Emulator {
             },
             // 0xBNNN
             0xB000 => {
-                self.registers.program_counter = self.registers.gp_registers[0 as usize] as u16 + self.opcode.opcode & 0x0FFF;
+                self.registers.program_counter = self.registers.gp_registers[0 as usize] as u16 + (self.opcode.opcode & 0x0FFF);
             },
             // 0xCXNN
             0xC000 => {
                 let gp_register_index_x = (self.opcode.opcode & 0x0F00) >> 8;
                 let val = self.opcode.opcode & 0x00FF;
-                self.registers.gp_registers[gp_register_index_x as usize] = (rand::thread_rng().gen_range(0..255) & val) as u8;
+                let rand: u8 = rand::thread_rng().gen();
+                self.registers.gp_registers[gp_register_index_x as usize] = rand & val as u8;
                 self.registers.program_counter += 2;
             },
             // 0xDXYN
@@ -377,7 +376,18 @@ impl Chip8Emulator {
                     },
                     // 0xFX0A
                     0x000A => {
-                        self.is_waiting_for_key = true;
+                        let mut pressed = false;
+                        for (idx, x) in self.input.pressed.iter().enumerate() {
+                            if *x {
+                                self.registers.gp_registers[gp_register_index_x as usize] = idx as u8;
+                                pressed = true;
+                                break;
+                            }
+                        }
+
+                        if pressed {
+                            self.registers.program_counter += 2;
+                        }
                     },
                     // 0xFX15
                     0x0015 => {
@@ -393,7 +403,6 @@ impl Chip8Emulator {
                     0x001E => {
                         let val = self.registers.gp_registers[gp_register_index_x as usize] as u16;
                         let res = self.registers.i.wrapping_add(val);
-                        // self.registers.gp_registers[15] = if overflow { 1 } else { 0 };
                         self.registers.i = res;
                         self.registers.program_counter += 2;
                     },
@@ -405,8 +414,8 @@ impl Chip8Emulator {
                     },
                     // 0xFX33
                     0x0033 => {
-                        let val = ((self.opcode.opcode & 0x0F00) >> 8 ) as f32;
-                        self.memory.ram[(self.registers.i) as usize] = (val / 100.0).floor() as u8;
+                        let val = self.registers.gp_registers[((self.opcode.opcode & 0x0F00) >> 8) as usize] as f32;
+                        self.memory.ram[(self.registers.i) as usize] = ((val / 100.0) % 10.0).floor() as u8;
                         self.memory.ram[(self.registers.i + 1) as usize] = ((val / 10.0) % 10.0).floor() as u8;
                         self.memory.ram[(self.registers.i + 2) as usize] = (val % 10.0).floor() as u8;
                         self.registers.program_counter += 2;
@@ -416,7 +425,6 @@ impl Chip8Emulator {
                         for idx in 0..=gp_register_index_x {
                             self.memory.ram[self.registers.i as usize + idx as usize] = self.registers.gp_registers[idx as usize];
                         }
-                        self.registers.i += gp_register_index_x + 1;
                         self.registers.program_counter += 2;
                     },
                     // 0xFX65
@@ -447,14 +455,6 @@ impl Chip8Emulator {
 
     pub fn set_key(&mut self, index: usize, pressed: bool) {
         self.input.pressed[index] = pressed;
-    }
-
-    pub fn get_wait_flag(&self) -> bool {
-        self.is_waiting_for_key
-    }
-
-    pub fn set_wait_flag(&mut self, flag: bool) {
-        self.is_waiting_for_key = flag;
     }
 
     pub fn resume_cycle(&mut self) {
