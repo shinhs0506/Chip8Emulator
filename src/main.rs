@@ -143,6 +143,7 @@ fn main () {
         }
         
         chip8_emulator.emulate_cycle();
+        chip8_emulator.advance_timers();
 
         canvas.clear();
         for (idx, val) in chip8_emulator.get_color_array().into_iter().enumerate() {
