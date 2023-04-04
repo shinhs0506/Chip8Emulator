@@ -1,10 +1,11 @@
 use rand::Rng;
 
+pub const WIDTH: usize = 64;
+pub const HEIGHT: usize = 32;
+
 const MEMORY_SIZE: usize = 4096;
 const NUM_GP_REGISTERS: usize = 16;
 const STACK_SIZE: usize = 16;
-const WIDTH: usize = 64;
-const HEIGHT: usize = 32;
 const NUM_FONTS: usize = 16;
 const FONT_ADDRESS_OFFSET: usize = 5;
 const NUM_KEYS: usize = 16;
@@ -295,7 +296,7 @@ impl Chip8Emulator {
                 self.registers.delay_timer = self.registers.gp_registers[x];
                 self.registers.program_counter += 2;
             },
-            (0xF, _, 0x1, 0x18) => {
+            (0xF, _, 0x1, 0x8) => {
                 self.registers.sound_timer = self.registers.gp_registers[x];
                 self.registers.program_counter += 2;
             },
