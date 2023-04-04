@@ -14,19 +14,18 @@ fn main () {
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
 
-    let window = video_subsystem.window("Chip-8 Emulator", 800, 600).position_centered().build().unwrap();
+    let window = video_subsystem.window("Chip-8 Emulator", 1200, 900).position_centered().build().unwrap();
 
     let mut canvas = window.into_canvas().build().unwrap();
-    canvas.set_draw_color(Color::BLACK);
+    canvas.set_draw_color(Color::WHITE);
     canvas.clear();
     canvas.present();
 
+    let buffer = fs::read("./game.ch8").unwrap();
     let mut chip8_emulator = Chip8Emulator::new();
-    let buffer = fs::read("game.ch8").unwrap();
     chip8_emulator.init(buffer);
 
     let mut event_pump = sdl_context.event_pump().unwrap();
-
     'main_loop: loop {
         for event in event_pump.poll_iter() {
             match event {
@@ -50,6 +49,7 @@ fn main () {
                             chip8_emulator.set_key(3, true)
                         },
                         Some(Scancode::Q) => {
+                            println!("Q Q Q");
                             chip8_emulator.set_key(4, true)
                         },
                         Some(Scancode::W) => {
@@ -150,20 +150,19 @@ fn main () {
             chip8_emulator.emulate_cycle();
         }
 
-        draw
         canvas.clear();
         for (idx, val) in chip8_emulator.get_color_array().into_iter().enumerate() {
             if val == 0x01 {
-                canvas.set_draw_color(Color::BLACK);
-            } else {
                 canvas.set_draw_color(Color::WHITE);
+            } else {
+                canvas.set_draw_color(Color::BLACK);
             }
-            let row: i32 = idx as i32 / 64;
-            let col: i32 = idx as i32 % 64;
-            let _width: u32 = 5;
-            canvas.draw_point(Point::new(row, col)).unwrap();
-            // canvas.fill_rect(Rect::new(row, col, width, width)).unwrap();
-            canvas.present();
+            let width: u32 = 15;
+            // canvas.draw_point(Point::new(row_idx as i32, col_idx as i32)).unwrap();
+            let ul_y = (idx / 64) as u32;
+            let ul_x = (idx % 64) as u32;
+            canvas.fill_rect(Rect::new((ul_x * width) as i32, (ul_y * width) as i32, width, width)).unwrap();
         }
+        canvas.present();
     }
 }
