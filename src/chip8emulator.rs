@@ -121,6 +121,19 @@ impl Chip8Emulator {
         self.memory.ram[program_start_memory_address..program_end_memory_adderess].copy_from_slice(buffer);
     }
 
+    pub fn reset(&mut self) {
+        self.memory.ram = [0; MEMORY_SIZE];
+        self.registers.gp_registers = [0; NUM_GP_REGISTERS];
+        self.registers.i = 0;
+        self.registers.program_counter = 0x200;
+        self.registers.delay_timer = 0;
+        self.registers.sound_timer = 0;
+        self.stack.stack = [0; STACK_SIZE];
+        self.stack.stack_pointer = 0;
+        self.graphic.pixels = [0; WIDTH * HEIGHT];
+        self.input.pressed = [false; NUM_KEYS];
+    }
+
     pub fn emulate_cycle(&mut self) {
         let opcode = self.fetch_opcode();
         let (op1, op2, op3, op4, x, y, n, nnn, kk) = self.decode_opcode(opcode);

@@ -58,6 +58,11 @@ impl Chip8EmulatorWasm {
     }
 
     #[wasm_bindgen]
+    pub fn reset(&mut self) {
+        self.chip8_emulator.reset();
+    }
+
+    #[wasm_bindgen]
     pub fn render(&mut self, cell_size: usize) {
         for (idx, val) in self.chip8_emulator.get_color_array().into_iter().enumerate() {
             if *val == 0x01 {
