@@ -3,13 +3,30 @@
     <head>
         <title>Chip-8 Emulator</title>
         <meta charset="utf-8">
+        <style>
+            html {
+                text-align: center;
+            }
+        </style>
     </head>
     <body>
         <h1>Chip-8 Emulator Powered by Rust and WebAssembly</h1>
-        <label for="fileinput">Upload a Chip-8 game: </label>
-        <input type="file" id="fileinput" autocomplete="off"/>
+        <label for="fileinput">Upload a Chip-8 file: </label>
+        <input type="file" id="fileinput" autocomplete="off" accept=".ch8"/>
         <br/>
         <canvas id="canvas"></canvas>
+        <br/>
+        <div style="font-size: 30px;">
+            <b>Keypad Layout</b>
+            <br/>
+            <b>1</b><b>2</b><b>3</b><b>4</b>
+            <br/>
+            <b>q</b><b>w</b><b>e</b><b>r</b>
+            <br/>
+            <b>a</b><b>s</b><b>d</b><b>f</b>
+            <br/>
+            <b>z</b><b>x</b><b>c</b><b>v</b>
+        </div>
     </body>
     <script type="module">
         import init, * as wasm from "./pkg/chip8emu.js"
