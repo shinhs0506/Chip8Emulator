@@ -1,5 +1,13 @@
 use rand::Rng;
-use std::collections::HashMap;
+
+const MEMORY_SIZE: usize = 4096;
+const NUM_GP_REGISTERS: usize = 16;
+const STACK_SIZE: usize = 16;
+const WIDTH: usize = 64;
+const HEIGHT: usize = 32;
+const NUM_FONTS: usize = 16;
+const FONT_ADDRESS_OFFSET: usize = 5;
+const NUM_KEYS: usize = 16;
 
 pub struct Chip8Emulator {
     memory: Memory,
@@ -13,14 +21,12 @@ pub struct Chip8Emulator {
 }
 
 struct Memory {
-    ram: Vec<u8>,
-    size: usize,
+    ram: [u8; MEMORY_SIZE],
     program_start_address: u16,
 }
 
 struct Registers {
-    gp_registers: Vec<u8>,
-    num_gp_registers: usize,
+    gp_registers: [u8; NUM_GP_REGISTERS],
     i: u16,
     program_counter: u16,
     delay_timer: u8,
@@ -28,14 +34,12 @@ struct Registers {
 }
 
 struct Stack {
-    stack: Vec<u16>,
-    size: usize,
+    stack: [u16; STACK_SIZE],
     stack_pointer: u8,
 }
 
 struct Graphic {
-    pixels: Vec<u8>,
-    size: usize,
+    pixels: [u8; WIDTH * HEIGHT],
 }
 
 struct OpCode {
@@ -43,40 +47,33 @@ struct OpCode {
 }
 
 struct FontSet {
-    font_set: Vec<u8>,
-    size: usize
+    font_set: [u8; NUM_FONTS * FONT_ADDRESS_OFFSET],
 }
 
 struct Input {
-    pressed: Vec<bool>,
-    num_keys: usize,
-    val_to_idx: HashMap<u8, usize>
+    pressed: [bool; NUM_KEYS],
 }
 
 impl Chip8Emulator {
     pub fn new() -> Self {
-        let chip8_emulator = Chip8Emulator {
+        Self {
             memory: Memory {
-                size: 4096,
-                ram: [0; 4096].to_vec(),
+                ram: [0; MEMORY_SIZE],
                 program_start_address: 0x200,
             },
             registers: Registers {
-                gp_registers: [0; 16].to_vec(),
-                num_gp_registers: 16,
+                gp_registers: [0; NUM_GP_REGISTERS],
                 i: 0,
                 program_counter: 0x200,
                 delay_timer: 0,
                 sound_timer: 0,
             },
             stack: Stack {
-                stack: [0; 16].to_vec(),
-                size: 16,
+                stack: [0; STACK_SIZE],
                 stack_pointer: 0,
             },
             graphic: Graphic {
-                pixels: [0; 64 * 32].to_vec(),
-                size: 64 * 32,
+                pixels: [0; WIDTH * HEIGHT],
             },
             opcode: OpCode {
                 opcode: 0,
@@ -99,45 +96,23 @@ impl Chip8Emulator {
                     0xE0, 0x90, 0x90, 0x90, 0xE0, // D
                     0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
                     0xF0, 0x80, 0xF0, 0x80, 0x80  // F
-                ].to_vec(),
-                size: 5 * 16
+                ],
             },
             draw_flag: false,
             input: Input {
-                pressed: [false; 16].to_vec(),
-                num_keys: 16,
-                val_to_idx: HashMap::from([
-                                          (0x01, 0),
-                                          (0x02, 1),
-                                          (0x03, 2),
-                                          (0x0C, 3),
-                                          (0x04, 4),
-                                          (0x05, 5),
-                                          (0x06, 6),
-                                          (0x0D, 7),
-                                          (0x07, 8),
-                                          (0x08, 9),
-                                          (0x09, 10),
-                                          (0x0E, 11),
-                                          (0x0A, 12),
-                                          (0x00, 13),
-                                          (0x0B, 14),
-                                          (0x0F, 15),])
+                pressed: [false; NUM_KEYS],
             },
-        };
-        chip8_emulator
+        }
     }
 
-    pub fn init(&mut self, buffer: Vec<u8>) {
+    pub fn init(&mut self, buffer: &[u8]) {
         // load fontset
-        for (i, val) in self.font_set.font_set.iter().enumerate() {
-            self.memory.ram[i] = *val;
-        }
+        self.memory.ram[..(NUM_FONTS * FONT_ADDRESS_OFFSET)].copy_from_slice(&self.font_set.font_set);
 
         // laod program into memory
-        for (i, val) in buffer.iter().enumerate() {
-            self.memory.ram[(self.memory.program_start_address + i as u16) as usize] = *val;
-        }
+        let program_start_memory_address = self.memory.program_start_address as usize;
+        let program_end_memory_adderess = program_start_memory_address as usize + buffer.len();
+        self.memory.ram[program_start_memory_address..program_end_memory_adderess].copy_from_slice(buffer);
     }
 
     pub fn emulate_cycle(&mut self) {
@@ -457,11 +432,7 @@ impl Chip8Emulator {
         self.input.pressed[index] = pressed;
     }
 
-    pub fn resume_cycle(&mut self) {
-        self.registers.program_counter += 2;
-    }
-
-    pub fn get_color_array(&self) -> Vec<u8> {
-        self.graphic.pixels.clone()
+    pub fn get_color_array(&self) -> &[u8] {
+        &self.graphic.pixels
     }
 }

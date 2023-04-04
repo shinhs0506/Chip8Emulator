@@ -4,7 +4,7 @@ use sdl2;
 use sdl2::pixels::Color;
 use sdl2::event::Event;
 use sdl2::keyboard::Scancode;
-use sdl2::rect::{Rect, Point};
+use sdl2::rect::Rect;
 
 use std::fs;
 
@@ -23,7 +23,7 @@ fn main () {
 
     let buffer = fs::read("./game.ch8").unwrap();
     let mut chip8_emulator = Chip8Emulator::new();
-    chip8_emulator.init(buffer);
+    chip8_emulator.init(&buffer);
 
     let mut event_pump = sdl_context.event_pump().unwrap();
     'main_loop: loop {
@@ -146,7 +146,7 @@ fn main () {
 
         canvas.clear();
         for (idx, val) in chip8_emulator.get_color_array().into_iter().enumerate() {
-            if val == 0x01 {
+            if *val == 0x01 {
                 canvas.set_draw_color(Color::WHITE);
             } else {
                 canvas.set_draw_color(Color::BLACK);
