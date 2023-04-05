@@ -15,7 +15,6 @@ pub struct Chip8Emulator {
     registers: Registers,
     stack: Stack,
     graphic : Graphic,
-    opcode: OpCode,
     font_set: FontSet,
     draw_flag: bool,
     input: Input,
@@ -41,10 +40,6 @@ struct Stack {
 
 struct Graphic {
     pixels: [u8; WIDTH * HEIGHT],
-}
-
-struct OpCode {
-    opcode: u16,
 }
 
 struct FontSet {
@@ -75,9 +70,6 @@ impl Chip8Emulator {
             },
             graphic: Graphic {
                 pixels: [0; WIDTH * HEIGHT],
-            },
-            opcode: OpCode {
-                opcode: 0,
             },
             font_set: FontSet {
                 font_set: [
@@ -138,10 +130,12 @@ impl Chip8Emulator {
         let opcode = self.fetch_opcode();
         let (op1, op2, op3, op4, x, y, n, nnn, kk) = self.decode_opcode(opcode);
 
+        self.registers.program_counter += 2;
+
         match (op1, op2, op3, op4) {
             (0x0, 0x0, 0xE, 0x0) => {
                 self.graphic.pixels = [0; WIDTH * HEIGHT];
-                self.registers.program_counter += 2;
+                self.set_draw_flag(true);
             },
             (0x0, 0x0, 0xE, 0xE) => {
                 self.stack.stack_pointer -= 1;
@@ -158,89 +152,69 @@ impl Chip8Emulator {
             },
             (0x3, _, _, _) => {
                 if self.registers.gp_registers[x] == kk as u8 {
-                    self.registers.program_counter += 4;
-                } else {
                     self.registers.program_counter += 2;
                 }
             }, 
             (0x4, _, _, _) => {
                 if self.registers.gp_registers[x] != kk as u8 {
-                    self.registers.program_counter += 4;
-                } else {
                     self.registers.program_counter += 2;
                 }
             },
             (0x5, _, _, 0x0) => {
                 if self.registers.gp_registers[x] == self.registers.gp_registers[y] {
-                    self.registers.program_counter += 4;
-                } else {
                     self.registers.program_counter += 2;
                 }
             },
             (0x6, _, _, _) => {
                 self.registers.gp_registers[x] = kk as u8;
-                self.registers.program_counter += 2;
             },
             (0x7, _, _, _) => {
                 self.registers.gp_registers[x] = self.registers.gp_registers[x].wrapping_add(kk as u8);
-                self.registers.program_counter += 2;
             },
             (0x8, _, _, 0x0) => {
                 self.registers.gp_registers[x] = self.registers.gp_registers[y];
-                self.registers.program_counter += 2;
             },
             (0x8, _, _, 0x1) => {
                 self.registers.gp_registers[x] |= self.registers.gp_registers[y];
-                self.registers.program_counter += 2;
             },
             (0x8, _, _, 0x2) => {
                 self.registers.gp_registers[x] &= self.registers.gp_registers[y];
-                self.registers.program_counter += 2;
             },
             (0x8, _, _, 0x3) => {
                 self.registers.gp_registers[x] ^= self.registers.gp_registers[y];
-                self.registers.program_counter += 2;
             },
             (0x8, _, _, 0x4) => {
                 let (res, overflow) = self.registers.gp_registers[x].overflowing_add(self.registers.gp_registers[y]);
                 self.registers.gp_registers[x] = res;
                 self.registers.gp_registers[NUM_GP_REGISTERS-1] = if overflow { 1 } else { 0 };
-                self.registers.program_counter += 2;
             },
             (0x8, _, _, 0x5) => {
                 let (res, borrow) = self.registers.gp_registers[x].overflowing_sub(self.registers.gp_registers[y]);
                 self.registers.gp_registers[x] = res;
                 self.registers.gp_registers[NUM_GP_REGISTERS-1] = if borrow { 0 } else { 1 };
-                self.registers.program_counter += 2;
             },
             (0x8, _, _, 0x6) => {
                 let val = self.registers.gp_registers[x];
                 self.registers.gp_registers[x] = val >> 1;
                 self.registers.gp_registers[NUM_GP_REGISTERS-1] = val & 0x01;
-                self.registers.program_counter += 2;
             },
             (0x8, _, _, 0x7) => {
                 let (res, borrow) = self.registers.gp_registers[y].overflowing_sub(self.registers.gp_registers[x]);
                 self.registers.gp_registers[y] = res;
                 self.registers.gp_registers[NUM_GP_REGISTERS-1] = if borrow { 0 } else { 1 };
-                self.registers.program_counter += 2;
             },
             (0x8, _, _, 0xE) => {
                 let val = self.registers.gp_registers[x];
                 self.registers.gp_registers[x] = val << 1;
                 self.registers.gp_registers[NUM_GP_REGISTERS-1] = (val >> 7) & 0x01;
-                self.registers.program_counter += 2;
             },
             (0x9, _, _, 0x0) => {
                 if self.registers.gp_registers[x] != self.registers.gp_registers[y] {
-                    self.registers.program_counter += 4;
-                } else {
                     self.registers.program_counter += 2;
                 }
             },
             (0xA, _, _, _) => {
                 self.registers.i = nnn;
-                self.registers.program_counter += 2;
             },
             (0xB, _, _, _) => {
                 self.registers.program_counter = self.registers.gp_registers[0 as usize] as u16 + nnn;
@@ -248,7 +222,6 @@ impl Chip8Emulator {
             (0xC, _, _, _) => {
                 let rand: u8 = rand::thread_rng().gen();
                 self.registers.gp_registers[x] = rand & kk as u8;
-                self.registers.program_counter += 2;
             },
             (0xD, _, _, _) => {
                 let x_val = self.registers.gp_registers[x];
@@ -269,27 +242,23 @@ impl Chip8Emulator {
                         }
                     }
                 } 
-                self.registers.program_counter += 2;
+
+                self.set_draw_flag(true);
             },
             (0xE, _, 0x9, 0xE) => {
                 let val = self.registers.gp_registers[x];
                 if self.input.pressed[val as usize] {
-                    self.registers.program_counter += 4;
-                } else {
                     self.registers.program_counter += 2;
                 }
             },
             (0xE, _, 0xA, 0x1) => {
                 let val = self.registers.gp_registers[x];
                 if !self.input.pressed[val as usize] {
-                    self.registers.program_counter += 4;
-                } else {
                     self.registers.program_counter += 2;
                 }
             },
             (0xF, _, 0x0, 0x7) => {
                 self.registers.gp_registers[x] = self.registers.delay_timer;
-                self.registers.program_counter += 2;
             },
             (0xF, _, 0x0, 0xA) => {
                 let mut pressed = false;
@@ -301,44 +270,37 @@ impl Chip8Emulator {
                     }
                 }
 
-                if pressed {
-                    self.registers.program_counter += 2;
+                if !pressed {
+                    self.registers.program_counter -= 2;
                 }
             },
             (0xF, _, 0x1, 0x5) => {
                 self.registers.delay_timer = self.registers.gp_registers[x];
-                self.registers.program_counter += 2;
             },
             (0xF, _, 0x1, 0x8) => {
                 self.registers.sound_timer = self.registers.gp_registers[x];
-                self.registers.program_counter += 2;
             },
             (0xF, _, 0x1, 0xE) => {
                 self.registers.i = self.registers.i.wrapping_add(self.registers.gp_registers[x].into());
-                self.registers.program_counter += 2;
             },
             (0xF, _, 0x2, 0x9) => {
                 self.registers.i = (self.registers.gp_registers[x] * FONT_ADDRESS_OFFSET as u8) as u16;
-                self.registers.program_counter += 2;
             },
             (0xF, _, 0x3, 0x3) => {
                 let val = self.registers.gp_registers[x] as f32;
                 self.memory.ram[(self.registers.i) as usize] = ((val / 100.0) % 10.0).floor() as u8;
                 self.memory.ram[(self.registers.i + 1) as usize] = ((val / 10.0) % 10.0).floor() as u8;
                 self.memory.ram[(self.registers.i + 2) as usize] = (val % 10.0).floor() as u8;
-                self.registers.program_counter += 2;
             },
             (0xF, _, 0x5, 0x5) => {
                 for idx in 0..=x {
                     self.memory.ram[self.registers.i as usize + idx as usize] = self.registers.gp_registers[idx as usize];
                 }
-                self.registers.program_counter += 2;
             },
             (0xF, _, 0x6, 0x5) => {
                 for idx in 0..=x {
                     self.registers.gp_registers[idx as usize] = self.memory.ram[self.registers.i as usize + idx as usize];
                 }
-                self.registers.program_counter += 2;
             },
             (_, _, _, _) => print!("Wrong Opcode"),
         }
@@ -373,6 +335,14 @@ impl Chip8Emulator {
             }
             self.registers.sound_timer -= 1;
         }
+    }
+
+    pub fn set_draw_flag(&mut self, should_draw: bool) {
+        self.draw_flag = should_draw;
+    }
+
+    pub fn should_render(&self) -> bool {
+        self.draw_flag
     }
 
     pub fn set_key(&mut self, index: usize, pressed: bool) {

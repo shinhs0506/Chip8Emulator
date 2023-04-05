@@ -10,6 +10,7 @@ use std::ffi::OsStr;
 use std::fs;
 use std::env;
 use std::path::Path;
+use std::{thread, time};
 
 use chip8emulator::Chip8Emulator;
 
@@ -72,18 +73,24 @@ fn main () {
         chip8_emulator.emulate_cycle();
         chip8_emulator.advance_timers();
 
-        canvas.clear();
-        for (idx, val) in chip8_emulator.get_color_array().into_iter().enumerate() {
-            if *val == 0x01 {
-                canvas.set_draw_color(Color::WHITE);
-            } else {
-                canvas.set_draw_color(Color::BLACK);
+        if chip8_emulator.should_render() {
+            canvas.clear();
+            for (idx, val) in chip8_emulator.get_color_array().into_iter().enumerate() {
+                if *val == 0x01 {
+                    canvas.set_draw_color(Color::WHITE);
+                } else {
+                    canvas.set_draw_color(Color::BLACK);
+                }
+                let ul_x = (idx % 64) as u32;
+                let ul_y = (idx / 64) as u32;
+                canvas.fill_rect(Rect::new((ul_x * CELL_SIZE) as i32, (ul_y * CELL_SIZE) as i32, CELL_SIZE, CELL_SIZE)).unwrap();
             }
-            let ul_x = (idx % 64) as u32;
-            let ul_y = (idx / 64) as u32;
-            canvas.fill_rect(Rect::new((ul_x * CELL_SIZE) as i32, (ul_y * CELL_SIZE) as i32, CELL_SIZE, CELL_SIZE)).unwrap();
+            canvas.present();
+
+            chip8_emulator.set_draw_flag(false);
         }
-        canvas.present();
+
+        thread::sleep(time::Duration::from_millis(1));
     }
 }
 
