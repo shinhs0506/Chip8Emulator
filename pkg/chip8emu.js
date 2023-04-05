@@ -258,19 +258,6 @@ export class Chip8EmulatorWasm {
         wasm.chip8emulatorwasm_reset(this.ptr);
     }
     /**
-    * @returns {boolean}
-    */
-    should_render() {
-        const ret = wasm.chip8emulatorwasm_should_render(this.ptr);
-        return ret !== 0;
-    }
-    /**
-    * @param {boolean} draw_flag
-    */
-    set_draw_flag(draw_flag) {
-        wasm.chip8emulatorwasm_set_draw_flag(this.ptr, draw_flag);
-    }
-    /**
     * @param {number} cell_size
     */
     render(cell_size) {

@@ -26,14 +26,6 @@ export class Chip8EmulatorWasm {
 */
   reset(): void;
 /**
-* @returns {boolean}
-*/
-  should_render(): boolean;
-/**
-* @param {boolean} draw_flag
-*/
-  set_draw_flag(draw_flag: boolean): void;
-/**
 * @param {number} cell_size
 */
   render(cell_size: number): void;
@@ -50,8 +42,6 @@ export interface InitOutput {
   readonly chip8emulatorwasm_advance_timers: (a: number) => void;
   readonly chip8emulatorwasm_keypress: (a: number, b: number, c: number) => void;
   readonly chip8emulatorwasm_reset: (a: number) => void;
-  readonly chip8emulatorwasm_should_render: (a: number) => number;
-  readonly chip8emulatorwasm_set_draw_flag: (a: number, b: number) => void;
   readonly chip8emulatorwasm_render: (a: number, b: number) => void;
   readonly __wbindgen_malloc: (a: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number) => number;

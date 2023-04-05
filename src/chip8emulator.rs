@@ -139,14 +139,13 @@ impl Chip8Emulator {
             },
             (0x0, 0x0, 0xE, 0xE) => {
                 self.stack.stack_pointer -= 1;
-                self.registers.program_counter = self.stack.stack[self.stack.stack_pointer as usize];
-                self.registers.program_counter += 2;
+                self.registers.program_counter = self.stack.stack[self.stack.stack_pointer as usize] + 2;
             },
             (0x1, _, _, _) => {
                 self.registers.program_counter = nnn;
             },
             (0x2, _, _, _) => {
-                self.stack.stack[self.stack.stack_pointer as usize] = self.registers.program_counter;
+                self.stack.stack[self.stack.stack_pointer as usize] = self.registers.program_counter - 2;
                 self.stack.stack_pointer += 1;
                 self.registers.program_counter = nnn;
             },

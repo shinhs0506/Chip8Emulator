@@ -5,7 +5,7 @@ const HEIGHT = 32;
 const CELL_SIZE = 18;
 let animation_frame = 0;
 
-const TICKS_PER_FRAME = 10;
+const TICKS_PER_FRAME = 3;
 
 const canvas = document.getElementById("canvas");
 canvas.width = WIDTH * CELL_SIZE;
@@ -63,7 +63,6 @@ function emulate_cycle_and_draw(chip8_emulator_wasm) {
     ctx.fillRect(0, 0, WIDTH * CELL_SIZE, HEIGHT * CELL_SIZE);
     ctx.fillStyle = "white";
     chip8_emulator_wasm.render(CELL_SIZE);
-    chip8_emulator_wasm.set_draw_flag(false);
 
     animation_frame = window.requestAnimationFrame(() => {
         emulate_cycle_and_draw(chip8_emulator_wasm);
