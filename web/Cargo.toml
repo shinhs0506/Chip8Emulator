@@ -1,0 +1,22 @@
+[package]
+name = "web"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+chip8emulator = { path = "../chip8emulator" }
+getrandom = { version = "*", features = ["js"]}
+
+[dependencies.web-sys]
+version = "0.3.61"
+features = [
+    "Window",
+    "Document",
+    "CanvasRenderingContext2d",
+    "HtmlCanvasElement",
+    "KeyboardEvent",
+]

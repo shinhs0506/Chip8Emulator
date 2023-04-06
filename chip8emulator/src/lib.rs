@@ -301,7 +301,7 @@ impl Chip8Emulator {
                     self.registers.gp_registers[idx as usize] = self.memory.ram[self.registers.i as usize + idx as usize];
                 }
             },
-            (_, _, _, _) => print!("Wrong Opcode"),
+            (_, _, _, _) => unimplemented!("Opcode is not implemented: {:#04x}", opcode),
         }
     }
 

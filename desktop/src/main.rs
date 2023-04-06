@@ -1,5 +1,3 @@
-mod chip8emulator;
-
 use sdl2;
 use sdl2::pixels::Color;
 use sdl2::event::Event;
@@ -21,19 +19,16 @@ const WIDTH: u32 = 64;
 fn main () {
     let args: Vec<_> = env::args().collect();
     if args.len() != 2 {
-        println!("Run: cargo run /path/to/.ch/file");
-        return;
+        panic!("Run: cargo run /path/to/.ch/file");
     }
     match Path::new(&args[1]).extension().and_then(OsStr::to_str) {
         Some(ext) => {
             if ext != "ch8" {
-                println!("Provide a .ch file");
-                return;
+                panic!("Provide a .ch file");
             }
         },
         _ => {
-            println!("Could not parse file");
-            return;
+            panic!("Could not parse file");
         }
     }
 
